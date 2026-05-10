@@ -40,7 +40,8 @@ local function generateSanityCheck()
 	end
 	local function generateValidation(idx)
 		local index = math.min(idx - 1, sanityPasses)
-		addCode("            if valid ~= %s then\n", tostring(sanityCheckAnswers[index]))
+		addCode("            if valid == %s then\n", tostring(sanityCheckAnswers[index]))
+		addCode("            else\n")
 		addCode("                while true do end\n")
 		addCode("            end\n")
 	end
@@ -56,10 +57,8 @@ local function generateSanityCheck()
 			addCode("            valid = %s;\n", tostring(sanityCheckAnswers[1]))
 		elseif i == 1 then
 			addCode("        elseif i == 1 then\n")
-			generateValidation(1)
-			if sanityPasses >= 2 then
-				generateAssignment(2)
-			end
+			addCode("            if valid == %s then\n", tostring(sanityCheckAnswers[1]))
+			addCode("            end\n")
 		else
 			addCode("        elseif i == %d then\n", i)
 
@@ -89,7 +88,7 @@ function AntiTamper:apply(ast, pipeline)
 	end
 	local code = generateSanityCheck()
 	if self.UseDebug then
-		local traceString = RandomStrings.randomString()
+		local string = RandomStrings.randomString()
 		code = code
 			.. [[
             -- Anti Beautify
@@ -139,12 +138,12 @@ function AntiTamper:apply(ast, pipeline)
             local function getTraceback()
                 local str = (function(arg)
                     return debug.traceback(arg)
-                end)("]] .. traceString .. [[");
+                end)("]] .. string .. [[");
                 return str;
             end
 
             local traceback = getTraceback();
-            valid = valid and traceback:sub(1, traceback:find("\n") - 1) == "]] .. traceString .. [[";
+            valid = valid and traceback:sub(1, traceback:find("\n") - 1) == "]] .. string .. [[";
             local iter = traceback:gmatch(":(%d*):");
             local v, c = iter(), 1;
             for i in iter do
